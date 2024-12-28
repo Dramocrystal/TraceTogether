@@ -4,11 +4,13 @@ import viteLogo from '/vite.svg'
 import './App.css'
 
 import DrawingCanvas from './DrawingCanvas';
+import HostJoinPage from './HostJoinPage';
 
 function App() {
   return (
     <div>
-      <DrawingCanvas />
+      {/* <DrawingCanvas /> */}
+      <HostJoinPage />
     </div>
   );
 };
