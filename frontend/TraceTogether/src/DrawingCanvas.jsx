@@ -1,5 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import ToolBar from './ToolBar';
+import { use } from 'react';
 
 const DrawingCanvas = () => {
   const canvasRef = useRef(null);
@@ -7,8 +9,54 @@ const DrawingCanvas = () => {
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
   const [isErasing, setIsErasing] = useState(false);
   const [color, setColor] = useState('#000000');
-  const [lineWidth, setLineWidth] = useState(2); // New state for line width
+  const [lineWidth, setLineWidth] = useState(2);
+  
+  const location = useLocation();
+  const { username, roomCode } = location.state;
+  const [cursorPositions, setCursorPositions] = useState({})
+  const ws = useRef(null);
 
+  useEffect(() => {
+
+    ws.current = new WebSocket('ws://localhost:5000/socket/');
+
+    ws.current.onopen = () => {
+      console.log('Connected to WebSocket');
+      ws.current.send(JSON.stringify({ type: 'join', code: roomCode, name: username }));
+    };
+
+    ws.current.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'cursor') {
+        setCursorPositions((prev) => ({
+          ...prev,
+          [message.username]: message.position,
+        }));
+      }
+    };
+
+    ws.current.onclose = () => {
+      console.log('Disconnected from WebSocket');
+    };
+
+    return () => {
+      ws.current.close();
+    };
+
+
+  }, [roomCode, username]);
+
+  const sendCursorPosition = (x, y) => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(
+        JSON.stringify({
+          type: 'cursor',
+          username,
+          position: { x, y },
+        })
+      );
+    }
+  };
 
   const startDrawing = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
@@ -16,32 +64,57 @@ const DrawingCanvas = () => {
     setLastPosition({ x: offsetX, y: offsetY });
   };
 
-  const draw = (e) => {
-    if (!isDrawing) return;
-
+  const handleMouseMove = (e) => {
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
     const { offsetX, offsetY } = e.nativeEvent;
-
-    
-
+  
+    // Send cursor position to server
+    sendCursorPosition(offsetX, offsetY);
+  
+    if (!isDrawing) return; // Only proceed with drawing if the user is actively drawing
+  
+    const context = canvas.getContext('2d');
+  
     if (isErasing) {
       context.globalCompositeOperation = 'destination-out'; // Erase mode
     } else {
       context.globalCompositeOperation = 'source-over'; // Draw mode
       context.strokeStyle = color;
     }
-
+  
     context.lineWidth = lineWidth;
     context.lineCap = 'round';
     context.beginPath();
     context.moveTo(lastPosition.x, lastPosition.y);
     context.lineTo(offsetX, offsetY);
     context.stroke();
-
+  
     setLastPosition({ x: offsetX, y: offsetY });
   };
+  
 
+  const renderCursors = () => {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    Object.keys(cursorPositions).forEach((user) => {
+      const { x, y } = cursorPositions[user];
+      context.fillStyle = 'red';
+      context.beginPath();
+      context.arc(x, y, 5, 0, Math.PI * 2); // Small dot for cursor
+      context.fill();
+      context.fillStyle = 'black';
+      context.fillText(user, x + 10, y); // Display username offset from the dot
+    });
+  };
+  
+  useEffect(() => {
+    if (canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear the canvas
+      renderCursors();
+    }
+  }, [cursorPositions]);
 
   const stopDrawing = () => {
     setIsDrawing(false);
@@ -62,10 +135,6 @@ const DrawingCanvas = () => {
     console.log("Line Width: ", width);
   };
 
-
-
-
-
   return (
     <div style={{ textAlign: 'center' }}>
       <h1>Drawing Canvas</h1>
@@ -75,7 +144,7 @@ const DrawingCanvas = () => {
         height={600}
         style={{ border: '1px solid black' }}
         onMouseDown={startDrawing}
-        onMouseMove={draw}
+        onMouseMove={handleMouseMove}
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
       />
@@ -88,9 +157,6 @@ const DrawingCanvas = () => {
       />
     </div>
   );
-
-}
+};
 
 export default DrawingCanvas;
-
-
