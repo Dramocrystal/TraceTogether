@@ -46,6 +46,8 @@ wss.on('connection', (ws) => {
             case 'cursor':
                 broadcastCursor(ws, message);
                 break;
+            case 'drawing':
+                broadcastDrawing(ws, message);
             
             default:
                 ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
@@ -79,6 +81,25 @@ function broadcastCursor(ws, message) {
             client.send(cursorData);
         }
     });
+}
+
+function broadcastDrawing(ws, message){
+    if (!ws.room || !rooms[ws.room]) {
+        ws.send(JSON.stringify({ type: 'error', message: 'You are not in a room' }));
+        return;
+    }
+
+    const drawingData = JSON.stringify({
+        type: 'drawing',
+        ...message, // Spread the drawing event details
+    });
+
+    rooms[ws.room].forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(drawingData);
+        }
+    });
+
 }
 
 function handleHostRoom(ws, name) {
