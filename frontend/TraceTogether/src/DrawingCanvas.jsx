@@ -44,12 +44,13 @@ const DrawingCanvas = () => {
 
         renderDrawing(context, start, end, color, lineWidth, isErasing);
       } else if (message.type === 'notification') {
-        notificationRef.current.addNotification(message.message, "success");
+        notificationRef.current.addNotification(message.message, message.JLType);
 
       }
     };
 
     ws.current.onclose = () => {
+      ws.current.send(JSON.stringify({ type: 'join', code: roomCode, name: username }));
       console.log('Disconnected from WebSocket');
     };
 

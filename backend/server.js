@@ -131,7 +131,7 @@ function handleJoinRoom(ws, code, name) {
     console.log(`${name} joined room: ${code}`);
 
     //notify all other people in the room that someone joined
-    const notification = JSON.stringify({ type: 'notification', message: `${name} has joined the room`});
+    const notification = JSON.stringify({ type: 'notification', message: `${name} has joined the room`, JLType:'success'});
     rooms[code].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(notification);
@@ -143,6 +143,12 @@ function handleJoinRoom(ws, code, name) {
 
 function handleLeaveRoom(ws) {
     if (ws.room && rooms[ws.room]) {
+        const notification = JSON.stringify({ type: 'notification', message: `${ws.user} has left the room`, JLType:'error'});
+        rooms[ws.room].forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(notification);
+        }
+    })
         rooms[ws.room].delete(ws);
 
         if (rooms[ws.room].size === 0) {
