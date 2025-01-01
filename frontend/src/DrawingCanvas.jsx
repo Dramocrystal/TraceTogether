@@ -46,6 +46,8 @@ const DrawingCanvas = () => {
       } else if (message.type === 'notification') {
         notificationRef.current.addNotification(message.message, message.JLType);
 
+      } else if (message.type === 'canvasHistory') {
+        renderHistory(message.history);
       }
     };
 
@@ -72,6 +74,18 @@ const DrawingCanvas = () => {
       );
     }
   };
+
+  const renderHistory = (history) => {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+  
+    history.forEach((drawingEvent) => {
+      const { start, end, color, lineWidth, isErasing } = drawingEvent;
+      renderDrawing(context, start, end, color, lineWidth, isErasing);
+    });
+  };
+  
+
 
   const startDrawing = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
