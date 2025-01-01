@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import ToolBar from './ToolBar';
-import { use } from 'react';
+import NotificationContainer from './notification';
 
 const DrawingCanvas = () => {
   const canvasRef = useRef(null);
@@ -16,6 +16,9 @@ const DrawingCanvas = () => {
   const { username, roomCode } = location.state;
   const [cursorPositions, setCursorPositions] = useState({})
   const ws = useRef(null);
+
+
+  const notificationRef = useRef(null);
 
   useEffect(() => {
 
@@ -40,6 +43,9 @@ const DrawingCanvas = () => {
         const context = canvas.getContext('2d');
 
         renderDrawing(context, start, end, color, lineWidth, isErasing);
+      } else if (message.type === 'notification') {
+        notificationRef.current.addNotification(message.message, "success");
+
       }
     };
 
@@ -168,6 +174,7 @@ const DrawingCanvas = () => {
 
   return (
     <div style={{ textAlign: 'center' }}>
+      <NotificationContainer ref={notificationRef} />
       <div style={{ position: 'relative', width: 800, height: 600 }}>
         <canvas
           ref={canvasRef}
