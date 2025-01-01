@@ -3,7 +3,8 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const http = require('http');
 const crypto = require('crypto');
-
+const v8 = require('v8');
+const { get } = require('https');
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server: server, path: '/socket/' });
@@ -14,6 +15,7 @@ app.use(cors());
 
 
 const rooms = {};
+const roomHistories = new Map();
 
 const generateRoomCode = () => {
     let code;
@@ -89,6 +91,14 @@ function broadcastDrawing(ws, message){
         return;
     }
 
+    const drawingAction = { ...message };
+
+    const roomHistory = roomHistories.get(ws.room);
+    if (roomHistory) {
+        roomHistory.push(drawingAction);
+        // console.log(`Current history size: ${getObjectSize(roomHistory)} bytes`);
+    }
+
     const drawingData = JSON.stringify({
         type: 'drawing',
         ...message, // Spread the drawing event details
@@ -102,12 +112,19 @@ function broadcastDrawing(ws, message){
 
 }
 
+function getObjectSize(obj) {
+    return v8.serialize(obj).length;
+  }
+  
+
 function handleHostRoom(ws, name) {
     const roomCode = generateRoomCode();
     rooms[roomCode] = new Set(); //create a set to hold participants
     rooms[roomCode].add(ws); //add host ws to participants
+    roomHistories.set(roomCode, []); //empty canvas history for the room
     ws.room = roomCode;
     ws.user = name;
+
 
     ws.send(JSON.stringify({ type: 'hosted', code: roomCode }));
     console.log(`New room created: ${roomCode} by ${name}`);
@@ -125,6 +142,10 @@ function handleJoinRoom(ws, code, name) {
     rooms[code].add(ws);
     ws.room = code;
     ws.user = name;
+
+    //Send the current state to the joining user.
+    const history = roomHistories.get(code) || [];
+    ws.send(JSON.stringify({ type: 'canvasHistory', history }));
 
     //Notify the client that the join was successfull
     ws.send(JSON.stringify({ type: 'joined', code }));
