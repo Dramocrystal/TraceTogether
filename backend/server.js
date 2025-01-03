@@ -63,6 +63,8 @@ wss.on('connection', (ws) => {
     });
 });
 
+let memoryThreshold = 1 * 1024 * 1024;
+
 function broadcastCursor(ws, message) {
     const { username, position } = message; // Extract the username and cursor position from the message
 
@@ -96,8 +98,17 @@ function broadcastDrawing(ws, message){
     const roomHistory = roomHistories.get(ws.room);
     if (roomHistory) {
         roomHistory.push(drawingAction);
-        // console.log(`Current history size: ${getObjectSize(roomHistory)} bytes`);
-    }
+
+        const historySize = getObjectSize(roomHistory);
+        const sizeInMB = historySize / (1024 * 1024);
+        console.log(sizeInMB);
+        // if (sizeInMB > memoryThreshold) {
+        //     console.log(`Memory load reached ${memoryThreshold / (1024 * 1024)} MB`);
+        //     memoryThreshold *=2;
+        // }
+
+    }   
+
 
     const drawingData = JSON.stringify({
         type: 'drawing',
@@ -115,6 +126,12 @@ function broadcastDrawing(ws, message){
 function getObjectSize(obj) {
     return v8.serialize(obj).length;
   }
+
+  function calculateTotalSize() {
+    const roomsSize = getObjectSize(rooms);
+    const historiesSize = getObjectSize(Array.from(roomHistories.entries()));
+    return roomsSize + historiesSize;
+}
   
 
 function handleHostRoom(ws, name) {
