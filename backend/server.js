@@ -101,7 +101,7 @@ function broadcastDrawing(ws, message){
 
         const historySize = getObjectSize(roomHistory);
         const sizeInMB = historySize / (1024 * 1024);
-        console.log(sizeInMB);
+        // console.log(sizeInMB);
         // if (sizeInMB > memoryThreshold) {
         //     console.log(`Memory load reached ${memoryThreshold / (1024 * 1024)} MB`);
         //     memoryThreshold *=2;
