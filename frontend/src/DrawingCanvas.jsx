@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom';
 import ToolBar from './ToolBar';
 import NotificationContainer from './notification';
 import { useDrawing } from './hooks/useDrawing';
-import { useWebSocket } from './hooks/useWebSocket';
+import { useDrawingWebSocket } from './hooks/useWebSocket'
 import { useCursor } from './hooks/useCursor';
+import { Copy } from 'lucide-react';
+import './RoomCode.css'; 
 
 const CANVAS_WIDTH = 3000;
 const CANVAS_HEIGHT = 2000;
@@ -48,9 +50,8 @@ const DrawingCanvas = () => {
     zoom
   });
 
-  const { handleMouseMove: wsHandleMouseMove } = useWebSocket({
+  const { handleMouseMove: handleDrawingMove } = useDrawingWebSocket({
     canvasRef,
-    ws: useRef(null),
     username,
     roomCode,
     notificationRef,
@@ -162,9 +163,20 @@ const DrawingCanvas = () => {
         clientY: canvasY
       };
       
-      wsHandleMouseMove(modifiedEvent);
-    }
+      handleDrawingMove(modifiedEvent);
+    }  
   };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(roomCode);
+    notificationRef.current.addNotification(
+      'Room code copied to clipboard!',
+      'success',
+      2000
+    );
+  };
+
+  
 
   return (
     <div ref={containerRef} style={{
@@ -178,6 +190,20 @@ const DrawingCanvas = () => {
       overflow: 'hidden'
     }}>
       <NotificationContainer ref={notificationRef} />
+
+      <div className="room-code-container">
+        <div className="room-code-content">
+          <span className="room-code-label">Room Code:</span>
+          <span className="room-code-value">{roomCode}</span>
+        </div>
+        <button
+          onClick={handleCopyCode}
+          className="copy-button"
+          title="Copy room code"
+        >
+          <Copy size={20} />
+        </button>
+      </div>
       
       <div 
         style={{ 

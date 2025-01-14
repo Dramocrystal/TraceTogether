@@ -47,7 +47,7 @@ body{
 }
 
 .container button{
-    background-color: #0055ff;
+    background-color: #10b981;
     color: #fff;
     font-size: 12px;
     padding: 10px 45px;
@@ -161,9 +161,9 @@ body{
 }
 
 .toggle{
-    background-color: #0055ff;
+    background-color: #10b981;
     height: 100%;
-    background: linear-gradient(288deg, #0055ff, #043873);
+    background: linear-gradient(288deg, #10b981, #047857);
     color: #fff;
     position: relative;
     left: -100%;
@@ -208,3 +208,26 @@ body{
 .container.active .toggle-right{
     transform: translateX(200%);
 }
+
+
+.container button {
+    background-color: #10b981;
+    color: #fff;
+    font-size: 14px;
+    padding: 12px 50px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.container button:hover {
+    background-color: #047857;
+    transform: scale(1.1);
+}
+
+
