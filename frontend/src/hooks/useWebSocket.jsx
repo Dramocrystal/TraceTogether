@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { renderDrawing, renderCanvasHistory } from '../utils/drawingUtils';
+import { useWebSocket } from '../WebSocketContext';
 
-export const useWebSocket = ({ 
+export const useDrawingWebSocket = ({ 
   canvasRef, 
-  ws, 
   username, 
   roomCode, 
   notificationRef,
@@ -15,83 +15,62 @@ export const useWebSocket = ({
   setLastPosition,
   setCursorPositions 
 }) => {
-  const handleWebSocketMessage = (message) => {
-    switch (message.type) {
-      case 'cursor':
-        setCursorPositions((prev) => ({
-          ...prev,
-          [message.username]: message.position,
-        }));
-        break;
-      case 'drawing':
-        const { start, end, color, lineWidth, isErasing } = message;
-        const context = canvasRef.current.getContext('2d');
-        renderDrawing(context, start, end, color, lineWidth, isErasing);
-        break;
-        
-      case 'notification':
-        notificationRef.current?.addNotification(message.message, message.JLType);
-        break;
-        
-      case 'canvasHistory':
-        renderCanvasHistory(message.history, canvasRef);
-        break;
-    }
-  };
+  const { sendMessage, addMessageListener } = useWebSocket();
+  const messageHandlerRef = useRef(null);
 
   useEffect(() => {
-    ws.current = new WebSocket('ws://localhost:5000/socket/');
-
-    ws.current.onopen = () => {
-      console.log('Connected to WebSocket');
-      ws.current.send(JSON.stringify({ type: 'join', code: roomCode, name: username }));
-    };
-
-    ws.current.onmessage = (event) => {
+    // Define message handler
+    messageHandlerRef.current = (event) => {
       const message = JSON.parse(event.data);
-      handleWebSocketMessage(message);
+      
+      switch (message.type) {
+        case 'cursor':
+          setCursorPositions((prev) => ({
+            ...prev,
+            [message.username]: message.position,
+          }));
+          break;
+          
+        case 'drawing':
+          const { start, end, color, lineWidth, isErasing } = message;
+          const context = canvasRef.current.getContext('2d');
+          renderDrawing(context, start, end, color, lineWidth, isErasing);
+          break;
+          
+        case 'notification':
+          // Add a check to prevent duplicate notifications
+          if (notificationRef.current) {
+            notificationRef.current.addNotification(message.message, message.JLType);
+          }
+          break;
+          
+        case 'canvasHistory':
+          renderCanvasHistory(message.history, canvasRef);
+          break;
+      }
     };
 
-    ws.current.onclose = () => {
-      ws.current.send(JSON.stringify({ type: 'join', code: roomCode, name: username }));
-      console.log('Disconnected from WebSocket');
-    };
+    // Only add the listener once and store the cleanup function
+    const cleanup = addMessageListener(messageHandlerRef.current);
 
+    // Join the room only once when the component mounts
+    sendMessage({ type: 'join', code: roomCode, name: username });
+
+    // Cleanup function
     return () => {
-      ws.current.close();
+      cleanup();
+      messageHandlerRef.current = null;
     };
-  }, [roomCode, username]);
-
-  const sendDrawingEvent = (start, end) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(
-        JSON.stringify({
-          type: 'drawing',
-          start,
-          end,
-          color: isErasing ? null : color,
-          lineWidth,
-          isErasing,
-        })
-      );
-    }
-  };
-
-  const sendCursorPosition = (x, y) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(
-        JSON.stringify({
-          type: 'cursor',
-          username,
-          position: { x, y },
-        })
-      );
-    }
-  };
+  }, []); // Empty dependency array since we're using refs for values that change
 
   const handleMouseMove = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
-    sendCursorPosition(offsetX, offsetY);
+    
+    sendMessage({
+      type: 'cursor',
+      username,
+      position: { x: offsetX, y: offsetY },
+    });
     
     if (isDrawing) {
       const context = canvasRef.current.getContext('2d');
@@ -106,7 +85,15 @@ export const useWebSocket = ({
         isErasing
       );
 
-      sendDrawingEvent(lastPosition, currentPosition);
+      sendMessage({
+        type: 'drawing',
+        start: lastPosition,
+        end: currentPosition,
+        color: isErasing ? null : color,
+        lineWidth,
+        isErasing,
+      });
+
       setLastPosition(currentPosition);
     }
   };

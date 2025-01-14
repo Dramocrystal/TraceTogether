@@ -1,140 +1,157 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NotificationContainer from './notification';
+import { useWebSocket } from './WebSocketContext';
+import './SlidingForm.css';
 
 const HostJoinPage = () => {
-  const [joinCode, setJoinCode] = useState('');
+  const [isHostMode, setIsHostMode] = useState(true);
   const [username, setName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
   const navigate = useNavigate();
+  const notificationRef = useRef();
+  const { sendMessage, addMessageListener } = useWebSocket();
 
-  const handleHost = () => {
-    if (!username.trim()) {
-      alert('Please enter your name to host a session.');
-      return;
-    }
-
-    const ws = new WebSocket('ws://localhost:5000/socket/');
-
-    ws.onopen = () => {
-      const message = {type : 'host', name: username};
-      ws.send(JSON.stringify(message));
-    };
-
-    ws.onmessage = (e) => {
-      const response = JSON.parse(e.data);
+  useEffect(() => {
+    const handleMessage = (event) => {
+      const response = JSON.parse(event.data);
 
       if (response.type === 'hosted') {
         const roomCode = response.code;
-        alert(`Room hosted successfully! Your room code is ${roomCode}`);
-        navigate('/canvas', { state: { mode: 'host', roomCode, username: username } });
+        notificationRef.current.addNotification(
+          `Room hosted successfully! Your room code is ${roomCode}`,
+          'success',
+          3000
+        );
+        navigate('/canvas', { state: { mode: 'host', roomCode, username } });
+      } else if (response.type === 'joined') {
+        notificationRef.current.addNotification(
+          `Successfully joined room ${response.code}`,
+          'success',
+          3000
+        );
+        navigate('/canvas', { state: { mode: 'join', roomCode: joinCode, username } });
       } else if (response.type === 'error') {
-        alert(`Error: ${response.message}`);
+        notificationRef.current.addNotification(
+          `Error: ${response.message}`,
+          'error'
+        );
       }
     };
 
+    const cleanup = addMessageListener(handleMessage);
+    return cleanup;
+  }, [navigate, username, joinCode]);
+
+  const handleHost = () => {
+    if (!username.trim()) {
+      notificationRef.current.addNotification(
+        'Please enter your name to host a session.',
+        'warning'
+      );
+      return;
+    }
+
+    sendMessage({ type: 'host', name: username });
+    notificationRef.current.addNotification(
+      'Connecting to server...',
+      'other',
+      2000
+    );
   };
 
   const handleJoin = () => {
     if (!username.trim() || !joinCode.trim()) {
-      alert('Please enter both your name and the room code to join.');
+      notificationRef.current.addNotification(
+        'Please enter both your name and the room code to join.',
+        'warning'
+      );
       return;
     }
 
-    const ws = new WebSocket('ws://localhost:5000/socket/');
-    
-    
-    ws.onopen = () => {
-      const message = {type : 'join', name: username, code: joinCode};
-      ws.send(JSON.stringify(message));
-    };
-
-    ws.onmessage = (e) => {
-      const response = JSON.parse(e.data);
-
-      if (response.type === 'joined') {
-        alert(`Joined room ${response.code}`);
-        navigate('/canvas', { state: { mode: 'join', roomCode: joinCode, username: username } });
-      } else if (response.type === 'error') {
-          alert(`Error: ${response.message}`);
-      } else if (response.type === 'notification') {
-          console.log(response.message);
-      }
-    };
-  }
+    sendMessage({ type: 'join', name: username, code: joinCode });
+    notificationRef.current.addNotification(
+      'Connecting to session...',
+      'other',
+      2000
+    );
+  };
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h1>Welcome To TraceTogether</h1>
-      <h3>Collaborate in real-time with others!</h3>
+    <div>
+      <NotificationContainer ref={notificationRef} />
+      <header className="welcome-header">
+        <h1>Welcome to Trace Together</h1>
+        <p>Your collaborative canvas platform for teamwork and creativity.</p>
+      </header>
+      <div className={`container ${isHostMode ? '' : 'active'}`} id="container">
+        {/* Host Form */}
+        <div className="form-container sign-up">
+          <form>
+            <h1>Host a Session</h1>
+            <input
+              type="text"
+              placeholder="Enter Your Name"
+              value={username}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <button type="button" onClick={handleHost}>
+              Host Session
+            </button>
+          </form>
+        </div>
 
-      <div style={{ margin: '20px 0' }}>
-        <input
-          type="text"
-          placeholder="Enter Your Name"
-          value={username}
-          onChange={(e) => setName(e.target.value)}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            width: '250px',
-            border: '1px solid #ccc',
-            borderRadius: '5px',
-            marginBottom: '10px',
-          }}
-        />
-      </div>
+        {/* Join Form */}
+        <div className="form-container sign-in">
+          <form>
+            <h1>Join a Session</h1>
+            <input
+              type="text"
+              placeholder="Enter Your Name"
+              value={username}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Enter Join Code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+            />
+            <button type="button" onClick={handleJoin}>
+              Join Session
+            </button>
+          </form>
+        </div>
 
-      {/* Hosting Section */}
-      <div style={{ margin: '20px 0' }}>
-        <button
-          onClick={handleHost}
-          style={{
-            padding: '10px 20px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-          }}
-        >
-          Host a New Session
-        </button>
-      </div>
-
-      <hr style={{ width: '50%', margin: '30px auto' }} />
-
-      {/* Joining Section */}
-      <div style={{ margin: '20px 0' }}>
-        <h2>Join an Existing Session</h2>
-        <input
-          type="text"
-          placeholder="Enter Join Code"
-          value={joinCode}
-          onChange={(e) => setJoinCode(e.target.value)}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            width: '250px',
-            border: '1px solid #ccc',
-            borderRadius: '5px',
-            marginBottom: '10px',
-          }}
-        />
-        <br />
-        <button
-          onClick={handleJoin}
-          style={{
-            padding: '10px 20px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-          }}
-        >
-          Join Session
-        </button>
+        {/* Toggle Panels */}
+        <div className="toggle-container">
+          <div className="toggle">
+            <div className="toggle-panel toggle-left">
+              <h1>Got a Room Code?</h1>
+              <p>Join an existing session and collaborate with your team instantly.</p>
+              <button
+                type="button"
+                className="hidden"
+                id="login"
+                onClick={() => setIsHostMode(true)}
+              >
+                Join Session
+              </button>
+            </div>
+            <div className="toggle-panel toggle-right">
+              <h1>Ready to Host?</h1>
+              <p>Create a session and invite your team to collaborate in real-time.</p>
+              <button
+                type="button"
+                className="hidden"
+                id="register"
+                onClick={() => setIsHostMode(false)}
+              >
+                Host Session
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

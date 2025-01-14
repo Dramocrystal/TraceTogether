@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
+import { WebSocketProvider } from './WebSocketContext';
 import './App.css'
 import DrawingCanvas from './DrawingCanvas';
 import HostJoinPage from './HostJoinPage';
@@ -8,6 +8,7 @@ import HostJoinPage from './HostJoinPage';
 
 const App = () => {
   return (
+    <WebSocketProvider>
     <Router>
       <Routes>
         {/* Homepage */}
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/canvas" element={<DrawingCanvas />} />
       </Routes>
     </Router>
+    </WebSocketProvider>
   );
 };
 
