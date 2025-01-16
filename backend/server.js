@@ -155,6 +155,18 @@ function handleJoinRoom(ws, code, name) {
         return;
     }
 
+    // Check if user is already in the room
+    let alreadyJoined = false;
+    rooms[code].forEach(client => {
+        if (client.user === name) {
+            alreadyJoined = true;
+        }
+    });
+
+    if (alreadyJoined) {
+        return; // Silently ignore duplicate join attempts
+    }
+
     //Add client to the room
     rooms[code].add(ws);
     ws.room = code;
@@ -164,17 +176,21 @@ function handleJoinRoom(ws, code, name) {
     const history = roomHistories.get(code) || [];
     ws.send(JSON.stringify({ type: 'canvasHistory', history }));
 
-    //Notify the client that the join was successfull
+    //Notify the client that the join was successful
     ws.send(JSON.stringify({ type: 'joined', code }));
     console.log(`${name} joined room: ${code}`);
 
     //notify all other people in the room that someone joined
-    const notification = JSON.stringify({ type: 'notification', message: `${name} has joined the room`, JLType:'success'});
+    const notification = JSON.stringify({ 
+        type: 'notification', 
+        message: `${name} has joined the room`, 
+        JLType: 'success'
+    });
     rooms[code].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(notification);
         }
-    })
+    });
 
     printRooms();
 }

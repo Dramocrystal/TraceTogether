@@ -5,6 +5,7 @@ const WebSocketContext = createContext(null);
 export const WebSocketProvider = ({ children }) => {
   const ws = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const listenersRef = useRef(new Set()); // Track active listeners
 
   const connectWebSocket = () => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
@@ -19,6 +20,11 @@ export const WebSocketProvider = ({ children }) => {
       console.error('WebSocket error:', error);
       ws.current?.close();
     };
+
+    // Reattach existing listeners after reconnection
+    listenersRef.current.forEach(listener => {
+      ws.current.addEventListener('message', listener);
+    });
   };
 
   useEffect(() => {
@@ -40,19 +46,18 @@ export const WebSocketProvider = ({ children }) => {
   };
 
   const addMessageListener = (callback) => {
-    if (ws.current) {
-      console.log('Adding new message listener'); // Debug log
-      ws.current.addEventListener('message', callback);
-  
-      // Return cleanup function
-      return () => {
-        console.log('Removing message listener'); // Debug log
-        ws.current?.removeEventListener('message', callback);
-      };
+    if (!ws.current || listenersRef.current.has(callback)) {
+      return () => {};
     }
-    return () => {};
+
+    listenersRef.current.add(callback);
+    ws.current.addEventListener('message', callback);
+    
+    return () => {
+      listenersRef.current.delete(callback);
+      ws.current?.removeEventListener('message', callback);
+    };
   };
-  
 
   return (
     <WebSocketContext.Provider value={{ sendMessage, addMessageListener }}>
