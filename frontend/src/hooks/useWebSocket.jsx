@@ -53,15 +53,11 @@ export const useDrawingWebSocket = ({
     // Only add the listener once and store the cleanup function
     const cleanup = addMessageListener(messageHandlerRef.current);
 
-    // Join the room only once when the component mounts
-    sendMessage({ type: 'join', code: roomCode, name: username });
-
-    // Cleanup function
     return () => {
       cleanup();
       messageHandlerRef.current = null;
     };
-  }, []); // Empty dependency array since we're using refs for values that change
+  }, []);
 
   const handleMouseMove = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;

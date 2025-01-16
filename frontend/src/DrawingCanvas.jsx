@@ -3,10 +3,10 @@ import { useLocation } from 'react-router-dom';
 import ToolBar from './ToolBar';
 import NotificationContainer from './notification';
 import { useDrawing } from './hooks/useDrawing';
-import { useDrawingWebSocket } from './hooks/useWebSocket'
+import { useDrawingWebSocket } from './hooks/useWebSocket';
 import { useCursor } from './hooks/useCursor';
 import { Copy } from 'lucide-react';
-import './RoomCode.css'; 
+import './RoomCode.css';
 
 const CANVAS_WIDTH = 3000;
 const CANVAS_HEIGHT = 2000;
@@ -15,7 +15,6 @@ const MAX_ZOOM = 2;
 const ZOOM_SPEED = 0.001;
 
 const DrawingCanvas = () => {
-  // ... (previous state and ref declarations remain the same)
   const canvasRef = useRef(null);
   const overlayCanvasRef = useRef(null);
   const notificationRef = useRef(null);
@@ -85,25 +84,20 @@ const DrawingCanvas = () => {
         y: (viewportSize.height - CANVAS_HEIGHT * zoom) / 2
       });
     }
-  }, [viewportSize]);
+  }, [viewportSize, zoom]);
 
   const handleWheel = (e) => {
     e.preventDefault();
     
-    // Calculate mouse position relative to the canvas's transformed position
     const mouseX = e.clientX - offset.x;
     const mouseY = e.clientY - offset.y;
-
-    // Convert mouse position to canvas space (before zoom)
     const canvasX = mouseX / zoom;
     const canvasY = mouseY / zoom;
 
-    // Calculate new zoom level
     const delta = -e.deltaY * ZOOM_SPEED;
     const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
     
     if (newZoom !== zoom) {
-      // Calculate new offset to keep the mouse point in the same position
       const newOffsetX = e.clientX - canvasX * newZoom;
       const newOffsetY = e.clientY - canvasY * newZoom;
 
@@ -121,16 +115,55 @@ const DrawingCanvas = () => {
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     } else {
-      const canvasX = (e.clientX - offset.x) / zoom;
-      const canvasY = (e.clientY - offset.y) / zoom;
+      const rect = canvasRef.current.getBoundingClientRect();
+      const scaleX = canvasRef.current.width / rect.width;
+      const scaleY = canvasRef.current.height / rect.height;
+      
+      const offsetX = (e.clientX - rect.left) * scaleX;
+      const offsetY = (e.clientY - rect.top) * scaleY;
       
       const modifiedEvent = {
         ...e,
-        clientX: canvasX,
-        clientY: canvasY
+        nativeEvent: {
+          ...e.nativeEvent,
+          offsetX,
+          offsetY
+        }
       };
       
       startDrawing(modifiedEvent);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    
+    if (isPanning) {
+      const deltaX = e.clientX - lastPanPoint.x;
+      const deltaY = e.clientY - lastPanPoint.y;
+      
+      setOffset(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+    } else {
+      const offsetX = (e.clientX - rect.left) * scaleX;
+      const offsetY = (e.clientY - rect.top) * scaleY;
+      
+      const modifiedEvent = {
+        ...e,
+        nativeEvent: {
+          ...e.nativeEvent,
+          offsetX,
+          offsetY
+        }
+      };
+      
+      handleDrawingMove(modifiedEvent);
     }
   };
 
@@ -142,29 +175,13 @@ const DrawingCanvas = () => {
     }
   };
 
-  const handleMouseMove = (e) => {
-    if (isPanning) {
-      const deltaX = e.clientX - lastPanPoint.x;
-      const deltaY = e.clientY - lastPanPoint.y;
-      
-      setOffset(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
-      
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
-    } else if (isDrawing) {
-      const canvasX = (e.clientX - offset.x) / zoom;
-      const canvasY = (e.clientY - offset.y) / zoom;
-      
-      const modifiedEvent = {
-        ...e,
-        clientX: canvasX,
-        clientY: canvasY
-      };
-      
-      handleDrawingMove(modifiedEvent);
-    }  
+  const handleMouseLeave = (e) => {
+    handleMouseUp(e);
+    setCursorPositions(prev => {
+      const newPositions = { ...prev };
+      delete newPositions[username];
+      return newPositions;
+    });
   };
 
   const handleCopyCode = () => {
@@ -175,8 +192,6 @@ const DrawingCanvas = () => {
       2000
     );
   };
-
-  
 
   return (
     <div ref={containerRef} style={{
@@ -229,7 +244,7 @@ const DrawingCanvas = () => {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
         />
         <canvas
           ref={overlayCanvasRef}
