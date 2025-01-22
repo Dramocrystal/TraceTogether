@@ -5,7 +5,7 @@ import NotificationContainer from './notification';
 import { useDrawing } from './hooks/useDrawing';
 import { useDrawingWebSocket } from './hooks/useWebSocket';
 import { useCursor } from './hooks/useCursor';
-import { Copy } from 'lucide-react';
+import { Copy, Share, Save } from 'lucide-react';
 import './RoomCode.css';
 
 const CANVAS_WIDTH = 3000;
@@ -24,7 +24,7 @@ const DrawingCanvas = () => {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
-  
+
   const location = useLocation();
   const { username, roomCode } = location.state;
 
@@ -193,6 +193,31 @@ const DrawingCanvas = () => {
     );
   };
 
+  const handleExportCanvas = () => {
+    const canvas = canvasRef.current;
+  
+    // Create a new temporary canvas
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+  
+    const ctx = tempCanvas.getContext('2d');
+  
+    // Fill the background with white
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  
+    ctx.drawImage(canvas, 0, 0);
+  
+    // Export
+    const image = tempCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = image;
+    link.download = 'drawing.png';
+    link.click();
+  };
+  
+
   return (
     <div ref={containerRef} style={{
       position: 'fixed',
@@ -217,6 +242,13 @@ const DrawingCanvas = () => {
           title="Copy room code"
         >
           <Copy size={20} />
+        </button>
+        <button
+          onClick={handleExportCanvas}
+          title="Export drawing"
+          className="share-button"
+        >
+          <Save size={20} />
         </button>
       </div>
       
