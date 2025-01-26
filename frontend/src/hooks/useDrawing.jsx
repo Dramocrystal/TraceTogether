@@ -6,6 +6,12 @@ export const useDrawing = () => {
   const [isErasing, setIsErasing] = useState(false);
   const [color, setColor] = useState('#000000');
   const [lineWidth, setLineWidth] = useState(2);
+  const [currentTool, setCurrentTool] = useState('pencil');
+  const [drawingHistory, setDrawingHistory] = useState([]);
+
+  const addToHistory = (drawingEvent) => {
+    setDrawingHistory(prev => [...prev, drawingEvent]);
+  };
 
   const startDrawing = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
@@ -30,12 +36,19 @@ export const useDrawing = () => {
     setLineWidth(width);
   };
 
+  const handleToolChange = (tool) => {
+    setCurrentTool(tool);
+  };
+
   return {
     isDrawing,
     lastPosition,
     color,
     lineWidth,
     isErasing,
+    currentTool,
+    drawingHistory,
+    addToHistory,
     setLastPosition,
     handleColorChange,
     handleLineWidthChange,
@@ -43,5 +56,6 @@ export const useDrawing = () => {
     setIsErasing,
     startDrawing,
     stopDrawing,
+    handleToolChange,
   };
 };

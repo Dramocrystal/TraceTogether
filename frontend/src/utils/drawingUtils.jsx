@@ -9,11 +9,29 @@ export const renderDrawing = (context, start, end, color, lineWidth, isErasing) 
     context.lineTo(end.x, end.y);
     context.stroke();
   };
+
+  export const renderRectangle = (context, start, end, color, lineWidth) => {
+    context.globalCompositeOperation = 'source-over';
+    context.strokeStyle = color;
+    context.lineWidth = lineWidth;
+    
+    const width = end.x - start.x;
+    const height = end.y - start.y;
+    
+    context.beginPath();
+    context.rect(start.x, start.y, width, height);
+    context.stroke();
+  };
   
   export const renderCanvasHistory = (history, canvasRef) => {
     const context = canvasRef.current.getContext('2d');
     history.forEach((drawingEvent) => {
-      const { start, end, color, lineWidth, isErasing } = drawingEvent;
-      renderDrawing(context, start, end, color, lineWidth, isErasing);
+      const { start, end, color, lineWidth, isErasing, tool } = drawingEvent;
+      
+      if (tool === 'rectangle') {
+        renderRectangle(context, start, end, color, lineWidth);
+      } else {
+        renderDrawing(context, start, end, color, lineWidth, isErasing);
+      }
     });
   };
