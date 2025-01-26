@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pencil, Square, Circle, Eraser, TextCursorInput } from 'lucide-react';
 
-const ToolBar = ({ onColorChange, onEraserToggle, onShapeDraw, onLineWidthChange }) => {
+const ToolBar = ({ onColorChange, onEraserToggle, onLineWidthChange, onToolChange }) => {
     const [isEraser, setIsEraser] = useState(false);
     const [selectedTool, setSelectedTool] = useState('pencil'); // Keeps track of the selected tool
 
@@ -28,7 +28,8 @@ const ToolBar = ({ onColorChange, onEraserToggle, onShapeDraw, onLineWidthChange
 
     const handleToolSelect = (tool) => {
         setSelectedTool(tool);
-        setIsEraser(tool === 'eraser'); // Automatically enable eraser mode if eraser is selected
+        setIsEraser(tool === 'eraser');
+        onToolChange(tool);
     };
 
     const handleLineWidthChange = (e) => {
@@ -68,16 +69,7 @@ const ToolBar = ({ onColorChange, onEraserToggle, onShapeDraw, onLineWidthChange
             >
                 <Square size={24} color={selectedTool === 'rectangle' ? '#007bff' : '#000'} />
             </button>
-            <button
-                onClick={() => handleToolSelect('circle')}
-                style={{
-                    background: selectedTool === 'circle' ? '#ddd' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                }}
-            >
-                <Circle size={24} color={selectedTool === 'circle' ? '#007bff' : '#000'} />
-            </button>
+            
             <button onClick={toggleEraser} style={{ border: 'none', cursor: 'pointer' }}>
                 <Eraser
                     size={24}
@@ -87,16 +79,6 @@ const ToolBar = ({ onColorChange, onEraserToggle, onShapeDraw, onLineWidthChange
                         borderRadius: '50%',
                     }}
                 />
-            </button>
-            <button
-                onClick={() => handleToolSelect('text')}
-                style={{
-                    background: selectedTool === 'text' ? '#ddd' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                }}
-            >
-                <TextCursorInput size={24} color={selectedTool === 'text' ? '#007bff' : '#000'} />
             </button>
 
             {/* Default Colors */}

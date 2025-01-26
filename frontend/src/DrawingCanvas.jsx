@@ -34,10 +34,13 @@ const DrawingCanvas = () => {
     color,
     lineWidth,
     isErasing,
+    currentTool,
+    drawingHistory,
+    addToHistory,
     setLastPosition,
     handleColorChange,
     handleLineWidthChange,
-    handleShapeDraw,
+    handleToolChange,
     setIsErasing,
     startDrawing,
     stopDrawing,
@@ -49,7 +52,7 @@ const DrawingCanvas = () => {
     zoom
   });
 
-  const { handleMouseMove: handleDrawingMove } = useDrawingWebSocket({
+  const { handleMouseMove: handleDrawingMouseMove, handleMouseUp } = useDrawingWebSocket({
     canvasRef,
     username,
     roomCode,
@@ -58,9 +61,12 @@ const DrawingCanvas = () => {
     color,
     lineWidth,
     isErasing,
+    currentTool,
     lastPosition,
     setLastPosition,
-    setCursorPositions
+    setCursorPositions,
+    drawingHistory,
+    addToHistory
   });
 
   useEffect(() => {
@@ -163,14 +169,15 @@ const DrawingCanvas = () => {
         }
       };
       
-      handleDrawingMove(modifiedEvent);
+      handleDrawingMouseMove(modifiedEvent);
     }
   };
 
-  const handleMouseUp = (e) => {
+  const handleCanvasMouseUp = (e) => {
     if (isPanning) {
       setIsPanning(false);
     } else {
+      handleMouseUp(e);
       stopDrawing(e);
     }
   };
@@ -275,7 +282,7 @@ const DrawingCanvas = () => {
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
+          onMouseUp={handleCanvasMouseUp}
           onMouseLeave={handleMouseLeave}
         />
         <canvas
@@ -305,8 +312,8 @@ const DrawingCanvas = () => {
         <ToolBar
           onColorChange={handleColorChange}
           onEraserToggle={setIsErasing}
-          onShapeDraw={handleShapeDraw}
           onLineWidthChange={handleLineWidthChange}
+          onToolChange={handleToolChange}
         />
       </div>
     </div>

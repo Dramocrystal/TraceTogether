@@ -32,6 +32,7 @@ wss.on('connection', (ws) => {
 
     ws.on('message', (data) => {
         const message = JSON.parse(data);
+
         switch (message.type) {
             case 'host':
                 handleHostRoom(ws, message.name);
@@ -48,12 +49,16 @@ wss.on('connection', (ws) => {
             case 'cursor':
                 broadcastCursor(ws, message);
                 break;
+
             case 'drawing':
                 broadcastDrawing(ws, message);
+                break;
             
             default:
-                ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
-
+                ws.send(JSON.stringify({ 
+                    type: 'error', 
+                    message: 'Unknown message type' 
+                }));
         }
     });
 
@@ -66,20 +71,18 @@ wss.on('connection', (ws) => {
 let memoryThreshold = 1 * 1024 * 1024;
 
 function broadcastCursor(ws, message) {
-    const { username, position } = message; // Extract the username and cursor position from the message
-
     if (!ws.room || !rooms[ws.room]) {
-        ws.send(JSON.stringify({ type: 'error', message: 'You are not in a room' }));
-        return;
+        return; // Silently ignore cursor updates if not in a room
     }
 
-    // Broadcast cursor position to everyone else in the room
+    // Create cursor message with username
     const cursorData = JSON.stringify({
         type: 'cursor',
-        username,
-        position,
+        username: ws.user,
+        position: message.position
     });
 
+    // Broadcast to other clients in the room
     rooms[ws.room].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(cursorData);
@@ -87,40 +90,37 @@ function broadcastCursor(ws, message) {
     });
 }
 
-function broadcastDrawing(ws, message){
+function broadcastDrawing(ws, message) {
     if (!ws.room || !rooms[ws.room]) {
         ws.send(JSON.stringify({ type: 'error', message: 'You are not in a room' }));
         return;
     }
 
-    const drawingAction = { ...message };
+    // Store the drawing action with all its properties (including tool type)
+    const drawingAction = {
+        type: 'drawing',
+        tool: message.tool, // This will be 'rectangle' or 'pencil'
+        start: message.start,
+        end: message.end,
+        color: message.color,
+        lineWidth: message.lineWidth,
+        isErasing: message.isErasing
+    };
 
+    // Add to room history
     const roomHistory = roomHistories.get(ws.room);
     if (roomHistory) {
         roomHistory.push(drawingAction);
-
-        const historySize = getObjectSize(roomHistory);
-        const sizeInMB = historySize / (1024 * 1024);
-        // console.log(sizeInMB);
-        // if (sizeInMB > memoryThreshold) {
-        //     console.log(`Memory load reached ${memoryThreshold / (1024 * 1024)} MB`);
-        //     memoryThreshold *=2;
-        // }
-
     }   
 
-
-    const drawingData = JSON.stringify({
-        type: 'drawing',
-        ...message, // Spread the drawing event details
-    });
+    // Broadcast to other clients
+    const drawingData = JSON.stringify(drawingAction);
 
     rooms[ws.room].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(drawingData);
         }
     });
-
 }
 
 function getObjectSize(obj) {
@@ -151,48 +151,47 @@ function handleHostRoom(ws, name) {
 
 function handleJoinRoom(ws, code, name) {
     if (!rooms[code]) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+        ws.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Room not found' 
+        }));
         return;
     }
 
-    // Check if user is already in the room
-    let alreadyJoined = false;
-    rooms[code].forEach(client => {
-        if (client.user === name) {
-            alreadyJoined = true;
-        }
-    });
-
-    if (alreadyJoined) {
-        return; // Silently ignore duplicate join attempts
-    }
-
-    //Add client to the room
+    // Add client to the room
     rooms[code].add(ws);
     ws.room = code;
     ws.user = name;
 
-    //Send the current state to the joining user.
+    // Get room history
     const history = roomHistories.get(code) || [];
-    ws.send(JSON.stringify({ type: 'canvasHistory', history }));
+    
+    // Send messages in sequence:
+    // 1. Canvas history
+    ws.send(JSON.stringify({ 
+        type: 'canvasHistory', 
+        history: history 
+    }));
 
-    //Notify the client that the join was successful
-    ws.send(JSON.stringify({ type: 'joined', code }));
-    console.log(`${name} joined room: ${code}`);
+    // 2. Single join confirmation
+    ws.send(JSON.stringify({ 
+        type: 'joined', 
+        code 
+    }));
 
-    //notify all other people in the room that someone joined
+    // 3. Single notification to other users
     const notification = JSON.stringify({ 
         type: 'notification', 
         message: `${name} has joined the room`, 
         JLType: 'success'
     });
+
+    // Only send notification once to each other client
     rooms[code].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(notification);
         }
     });
-
-    printRooms();
 }
 
 function handleLeaveRoom(ws) {
