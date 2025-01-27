@@ -9,27 +9,36 @@ const ToolBar = ({ onColorChange, onEraserToggle, onLineWidthChange, onToolChang
 
     const handleColorClick = (color) => {
         setIsEraser(false);
-        setSelectedTool('pencil'); // Switch to pencil mode when selecting a color
         onColorChange(color);
     };
 
     const handleCustomColorChange = (e) => {
         setIsEraser(false);
-        setSelectedTool('pencil'); // Switch to pencil mode when selecting a color
         onColorChange(e.target.value);
+    };
+
+    const handleToolSelect = (tool) => {
+        setSelectedTool(tool);
+        // When selecting any tool other than eraser, ensure eraser mode is off
+        if (tool !== 'eraser') {
+            setIsEraser(false);
+            onEraserToggle(false);
+        } else {
+            setIsEraser(true);
+            onEraserToggle(true);
+        }
+        onToolChange(tool);
     };
 
     const toggleEraser = () => {
         const isNowEraser = !isEraser;
         setIsEraser(isNowEraser);
-        setSelectedTool(isNowEraser ? 'eraser' : 'pencil'); // Switch tool based on eraser state
+        // Update the selected tool to match eraser state
+        if (isNowEraser) {
+            setSelectedTool('eraser');
+            onToolChange('eraser');
+        }
         onEraserToggle(isNowEraser);
-    };
-
-    const handleToolSelect = (tool) => {
-        setSelectedTool(tool);
-        setIsEraser(tool === 'eraser');
-        onToolChange(tool);
     };
 
     const handleLineWidthChange = (e) => {
