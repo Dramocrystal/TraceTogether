@@ -6,11 +6,18 @@ export const WebSocketProvider = ({ children }) => {
   const ws = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const listenersRef = useRef(new Set()); // Track active listeners
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = window.location.hostname;
+  const port = '5000'; // optional: remove if not needed
+  const path = '/socket/';
+  const wsUrl = `${protocol}://${host}:${port}${path}`;
+
 
   const connectWebSocket = () => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
-    ws.current = new WebSocket('ws://localhost:5000/socket/');
+    // ws.current = new WebSocket('ws://localhost:5000/socket/');
+    ws.current = new WebSocket(wsUrl);
 
     ws.current.onclose = () => {
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
