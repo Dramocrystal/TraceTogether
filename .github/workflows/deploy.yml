@@ -28,7 +28,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           cd /home/TraceTogether
           #kill old session if running
-          tmux has-session -t tracetogether && tmux kill-session -t tracetoghether || true
+          tmux has-session -t tracetogether && tmux kill-session -t tracetogether || true
           #pull code
           git pull origin main
           # build frontend
