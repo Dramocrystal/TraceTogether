@@ -33,11 +33,11 @@ jobs:
           git pull origin main
           # build frontend
           cd frontend
-          npm install --omit=dev
+          npm install
           npm run build
           #run the app
           cd ../backend
-          npm install --omit=dev
+          npm install
           #run the app
           tmux new-session -d -s tracetogether 'node server.js'
           EOF
