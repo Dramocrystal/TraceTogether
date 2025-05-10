@@ -5,6 +5,7 @@ const http = require('http');
 const crypto = require('crypto');
 const v8 = require('v8');
 const { get } = require('https');
+const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server: server, path: '/socket/' });
@@ -12,6 +13,7 @@ const wss = new WebSocket.Server({ server: server, path: '/socket/' });
 
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, '../frontend/dist'), {extensions: ['html']}));
 
 
 const rooms = {};
@@ -244,13 +246,9 @@ function printRooms() {
 
 
 
-// Test route
-app.get('/', (req, res) => {
-    res.send('Backend is running!');
-});
 
 // Start server
-const PORT = 5000;
+const PORT = 80;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
