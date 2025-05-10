@@ -81,7 +81,7 @@ const HostJoinPage = () => {
     <div>
       <NotificationContainer ref={notificationRef} />
       <header className="welcome-header">
-        <h1>Welcome to Trace Together</h1>
+        <h1>Welcome to Trace Together!!!</h1>
         <p>Your collaborative canvas platform for teamwork and creativity.</p>
       </header>
       <div className={`container ${isHostMode ? '' : 'active'}`} id="container">
