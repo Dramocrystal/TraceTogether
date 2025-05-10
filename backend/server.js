@@ -160,18 +160,6 @@ function handleJoinRoom(ws, code, name) {
         return;
     }
 
-    // Check if user is already in the room
-    let alreadyJoined = false;
-    rooms[code].forEach(client => {
-        if (client.user === name) {
-            alreadyJoined = true;
-        }
-    });
-
-    if (alreadyJoined) {
-        return; // Silently ignore duplicate join attempts
-    }
-
     // Add client to the room
     rooms[code].add(ws);
     ws.room = code;

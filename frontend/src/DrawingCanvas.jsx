@@ -7,6 +7,7 @@ import { useDrawingWebSocket } from './hooks/useWebSocket';
 import { useCursor } from './hooks/useCursor';
 import { Copy, Share, Save } from 'lucide-react';
 import './RoomCode.css';
+import { renderDrawing, renderRectangle } from './utils/drawingUtils';
 
 const CANVAS_WIDTH = 3000;
 const CANVAS_HEIGHT = 2000;
@@ -91,6 +92,20 @@ const DrawingCanvas = () => {
       });
     }
   }, [viewportSize, zoom]);
+
+  useEffect(() => {
+    const context = canvasRef.current.getContext('2d');
+    // Clear the canvas
+    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Redraw from history
+    drawingHistory.forEach(event => {
+      if (event.tool === 'rectangle') {
+        renderRectangle(context, event.start, event.end, event.color, event.lineWidth);
+      } else {
+        renderDrawing(context, event.start, event.end, event.color, event.lineWidth, event.isErasing);
+      }
+    });
+  }, [drawingHistory]);
 
   const handleWheel = (e) => {
     e.preventDefault();

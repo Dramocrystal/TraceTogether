@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useDrawing = () => {
   const [isDrawing, setIsDrawing] = useState(false);
@@ -40,6 +40,25 @@ export const useDrawing = () => {
     setCurrentTool(tool);
   };
 
+  const handleUndo = () => {
+    setDrawingHistory(prev => {
+      if (prev.length === 0) return prev;
+      return prev.slice(0, -1);
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return {
     isDrawing,
     lastPosition,
@@ -57,5 +76,6 @@ export const useDrawing = () => {
     startDrawing,
     stopDrawing,
     handleToolChange,
+    handleUndo,
   };
 };
