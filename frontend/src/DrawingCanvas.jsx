@@ -91,7 +91,7 @@ const DrawingCanvas = () => {
         y: (viewportSize.height - CANVAS_HEIGHT * zoom) / 2
       });
     }
-  }, [viewportSize, zoom]);
+  }, [viewportSize]);
 
   useEffect(() => {
     const context = canvasRef.current.getContext('2d');
@@ -107,28 +107,81 @@ const DrawingCanvas = () => {
     });
   }, [drawingHistory]);
 
+
+  
   const handleWheel = (e) => {
-    e.preventDefault();
-    
-    const mouseX = e.clientX - offset.x;
-    const mouseY = e.clientY - offset.y;
-    const canvasX = mouseX / zoom;
-    const canvasY = mouseY / zoom;
+  e.preventDefault();
 
-    const delta = -e.deltaY * ZOOM_SPEED;
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
-    
-    if (newZoom !== zoom) {
-      const newOffsetX = e.clientX - canvasX * newZoom;
-      const newOffsetY = e.clientY - canvasY * newZoom;
+  const containerRect = containerRef.current.getBoundingClientRect();
+  const mouseX = e.clientX - containerRect.left;
+  const mouseY = e.clientY - containerRect.top;
 
-      setZoom(newZoom);
-      setOffset({
-        x: newOffsetX,
-        y: newOffsetY
-      });
-    }
-  };
+  const worldX = (mouseX - offset.x) / zoom;
+  const worldY = (mouseY - offset.y) / zoom;
+
+  const delta = -e.deltaY * ZOOM_SPEED;
+  const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
+  if (newZoom === zoom) return;
+
+  // Try to zoom around mouse
+  let newOffsetX = mouseX - worldX * newZoom;
+  let newOffsetY = mouseY - worldY * newZoom;
+
+  const canvasDisplayWidth = CANVAS_WIDTH * newZoom;
+  const canvasDisplayHeight = CANVAS_HEIGHT * newZoom;
+
+  // If canvas becomes smaller than viewport, center it
+  if (canvasDisplayWidth < viewportSize.width) {
+    newOffsetX = (viewportSize.width - canvasDisplayWidth) / 2;
+  } else {
+    const minX = viewportSize.width - canvasDisplayWidth - PAN_MARGIN;
+    const maxX = PAN_MARGIN;
+    newOffsetX = clamp(newOffsetX, minX, maxX);
+  }
+
+  if (canvasDisplayHeight < viewportSize.height) {
+    newOffsetY = (viewportSize.height - canvasDisplayHeight) / 2;
+  } else {
+    const minY = viewportSize.height - canvasDisplayHeight - PAN_MARGIN;
+    const maxY = PAN_MARGIN;
+    newOffsetY = clamp(newOffsetY, minY, maxY);
+  }
+
+  setZoom(newZoom);
+  setOffset({ x: newOffsetX, y: newOffsetY });
+};
+
+
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheelWrapper = (e) => handleWheel(e);
+    container.addEventListener('wheel', handleWheelWrapper, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheelWrapper);
+    };
+  }, [handleWheel]);
+
+  // Add global mouse up listener to handle mouse release outside canvas
+  useEffect(() => {
+    const handleGlobalMouseUp = (e) => {
+      if (isDrawing) {
+        handleMouseUp(e);
+        stopDrawing(e);
+      }
+      if (isPanning) {
+        setIsPanning(false);
+      }
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDrawing, isPanning, handleMouseUp, stopDrawing]);
 
   const handleMouseDown = (e) => {
     if (e.button === 1) {
@@ -155,38 +208,52 @@ const DrawingCanvas = () => {
       startDrawing(modifiedEvent);
     }
   };
+  const PAN_MARGIN = 200;
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
   const handleMouseMove = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    
-    if (isPanning) {
-      const deltaX = e.clientX - lastPanPoint.x;
-      const deltaY = e.clientY - lastPanPoint.y;
-      
-      setOffset(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
-      
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
-    } else {
-      const offsetX = (e.clientX - rect.left) * scaleX;
-      const offsetY = (e.clientY - rect.top) * scaleY;
-      
-      const modifiedEvent = {
-        ...e,
-        nativeEvent: {
-          ...e.nativeEvent,
-          offsetX,
-          offsetY
-        }
+  const rect = canvasRef.current.getBoundingClientRect();
+  const scaleX = canvasRef.current.width / rect.width;
+  const scaleY = canvasRef.current.height / rect.height;
+
+  if (isPanning) {
+    const deltaX = e.clientX - lastPanPoint.x;
+    const deltaY = e.clientY - lastPanPoint.y;
+
+    setOffset(prev => {
+      const newX = prev.x + deltaX;
+      const newY = prev.y + deltaY;
+
+      const minX = viewportSize.width - CANVAS_WIDTH * zoom - PAN_MARGIN;
+      const minY = viewportSize.height - CANVAS_HEIGHT * zoom - PAN_MARGIN;
+      const maxX = PAN_MARGIN;
+      const maxY = PAN_MARGIN;
+
+      return {
+        x: clamp(newX, minX, maxX),
+        y: clamp(newY, minY, maxY),
       };
-      
-      handleDrawingMouseMove(modifiedEvent);
-    }
-  };
+    });
+
+    setLastPanPoint({ x: e.clientX, y: e.clientY });
+  } else {
+    const offsetX = (e.clientX - rect.left) * scaleX;
+    const offsetY = (e.clientY - rect.top) * scaleY;
+
+    const modifiedEvent = {
+      ...e,
+      nativeEvent: {
+        ...e.nativeEvent,
+        offsetX,
+        offsetY
+      }
+    };
+
+    handleDrawingMouseMove(modifiedEvent);
+  }
+};
+
 
   const handleCanvasMouseUp = (e) => {
     if (isPanning) {
@@ -198,7 +265,8 @@ const DrawingCanvas = () => {
   };
 
   const handleMouseLeave = (e) => {
-    handleMouseUp(e);
+    // Don't stop drawing when leaving canvas - this will be handled by the global mouse up event
+    // Just update cursor position instead
     setCursorPositions(prev => {
       const newPositions = { ...prev };
       delete newPositions[username];
@@ -239,7 +307,6 @@ const DrawingCanvas = () => {
     link.click();
   };
   
-
   return (
     <div ref={containerRef} style={{
       position: 'fixed',
@@ -280,7 +347,6 @@ const DrawingCanvas = () => {
           flex: 1,
           background: '#f0f0f0'
         }}
-        onWheel={handleWheel}
       >
         <canvas
           ref={canvasRef}
