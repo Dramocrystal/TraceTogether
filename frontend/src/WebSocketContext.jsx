@@ -7,10 +7,9 @@ export const WebSocketProvider = ({ children }) => {
   const reconnectTimeoutRef = useRef(null);
   const listenersRef = useRef(new Set()); // Track active listeners
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const host = window.location.hostname;
-  const port = '80'; // optional: remove if not needed
+  const host = window.location.host; // includes hostname and port if needed
   const path = '/socket/';
-  const wsUrl = `${protocol}://${host}:${port}${path}`;
+  const wsUrl = `${protocol}://${host}${path}`;
 
 
   const connectWebSocket = () => {
