@@ -248,7 +248,7 @@ function printRooms() {
 
 
 // Start server
-const PORT = 80;
+const PORT = 3000;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
