@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationContainer from './notification';
 import { useWebSocket } from './WebSocketContext';
 import './SlidingForm.css';
+
+
 
 const HostJoinPage = () => {
   const [isHostMode, setIsHostMode] = useState(true);
@@ -11,6 +13,33 @@ const HostJoinPage = () => {
   const navigate = useNavigate();
   const notificationRef = useRef();
   const { sendMessage, addMessageListener } = useWebSocket();
+  
+
+  const symbols = ['✿', '✦', '❖', '♥', '✧', '♡', '♪', '♫', '✏️'];
+  const floatingSymbols = useMemo(() => {
+  return Array.from({ length: 100 }).map((_, i) => {
+    const style = {
+      position: 'absolute',
+      left: `${Math.random() * 100}vw`,
+      top: `${Math.random() * 100}vh`,
+      fontSize: `${Math.random() * 2 + 1}rem`,
+      animation: `floatSymbols ${20 + Math.random() * 10}s linear infinite`,
+      animationDelay: `-${Math.random() * 30}s`, // negative value = start midway
+    };
+
+    return (
+      <span
+        key={i}
+        className={`pattern-symbol gold-shimmer`}
+        style={style}
+      >
+        {symbols[i % symbols.length]}
+      </span>
+    );
+  });
+}, []);
+
+
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -80,14 +109,15 @@ const HostJoinPage = () => {
   return (
     <div>
       <NotificationContainer ref={notificationRef} />
-      <header className="welcome-header">
-        <h1>Welcome to Trace Together!!!</h1>
-        <p>Your collaborative canvas platform for teamwork and creativity.</p>
-      </header>
+      <div className="louis-pattern-bg">{floatingSymbols}</div>
+      <h2>Trace Together</h2>
       <div className={`container ${isHostMode ? '' : 'active'}`} id="container">
         {/* Host Form */}
         <div className="form-container sign-up">
-          <form>
+         <form onSubmit={(e) => {
+            e.preventDefault();
+            handleHost();
+          }}>
             <h1>Host a Session</h1>
             <input
               type="text"
@@ -95,15 +125,17 @@ const HostJoinPage = () => {
               value={username}
               onChange={(e) => setName(e.target.value)}
             />
-            <button type="button" onClick={handleHost}>
-              Host Session
-            </button>
-          </form>
+            <button type="submit">Host Session</button>
+</form>
+
         </div>
 
         {/* Join Form */}
         <div className="form-container sign-in">
-          <form>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleJoin();
+          }}>
             <h1>Join a Session</h1>
             <input
               type="text"
@@ -117,10 +149,9 @@ const HostJoinPage = () => {
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
             />
-            <button type="button" onClick={handleJoin}>
-              Join Session
-            </button>
+            <button type="submit">Join Session</button>
           </form>
+
         </div>
 
         {/* Toggle Panels */}
