@@ -1,7 +1,7 @@
 # Collaborative Interactive Whiteboard ✍️🖼️
 
 A real-time, interactive whiteboard designed for seamless collaboration. Users can draw ✏️, erase 🧽, and annotate on a shared digital canvas with multiple tools 🛠️, making it ideal for brainstorming 💡, teaching 👩‍🏫, and team discussions 🤝.  
-> 🖥️ **Live Demo**: Access the application at [http://159.203.41.176/](http://159.203.41.176/)
+> 🖥️ **Live Demo**: Access the application at [https://tracetogether.yazidtech.com/](https://tracetogether.yazidtech.com/)
 
 ## Features 🌟  
 - **Real-Time Collaboration** – Multiple users can draw and interact on the board simultaneously. 🌍  
