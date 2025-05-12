@@ -1,44 +1,40 @@
 import React, { useState } from 'react';
-import { Pencil, Square, Circle, Eraser, TextCursorInput } from 'lucide-react';
+import { Pencil, Square, Eraser, SlidersHorizontal } from 'lucide-react';
+import './ToolBar.css';
 
 const ToolBar = ({ onColorChange, onEraserToggle, onLineWidthChange, onToolChange }) => {
     const [isEraser, setIsEraser] = useState(false);
-    const [selectedTool, setSelectedTool] = useState('pencil'); // Keeps track of the selected tool
+    const [selectedTool, setSelectedTool] = useState('pencil');
+    const [showLineWidthMenu, setShowLineWidthMenu] = useState(false);
 
     const defaultColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FFA500', '#000000'];
 
     const handleColorClick = (color) => {
         setIsEraser(false);
+        onEraserToggle(false);
         onColorChange(color);
     };
 
     const handleCustomColorChange = (e) => {
         setIsEraser(false);
+        onEraserToggle(false);
         onColorChange(e.target.value);
     };
 
     const handleToolSelect = (tool) => {
         setSelectedTool(tool);
-        // When selecting any tool other than eraser, ensure eraser mode is off
-        if (tool !== 'eraser') {
-            setIsEraser(false);
-            onEraserToggle(false);
-        } else {
+        if (tool === 'eraser') {
             setIsEraser(true);
             onEraserToggle(true);
+        } else {
+            setIsEraser(false);
+            onEraserToggle(false);
         }
         onToolChange(tool);
     };
 
-    const toggleEraser = () => {
-        const isNowEraser = !isEraser;
-        setIsEraser(isNowEraser);
-        // Update the selected tool to match eraser state
-        if (isNowEraser) {
-            setSelectedTool('eraser');
-            onToolChange('eraser');
-        }
-        onEraserToggle(isNowEraser);
+    const toggleLineWidthMenu = () => {
+        setShowLineWidthMenu(!showLineWidthMenu);
     };
 
     const handleLineWidthChange = (e) => {
@@ -46,81 +42,55 @@ const ToolBar = ({ onColorChange, onEraserToggle, onLineWidthChange, onToolChang
     };
 
     return (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px',
-                border: '1px solid #ccc',
-                background: '#f9f9f9',
-                borderRadius: '8px',
-            }}
-        >
-            {/* Tools */}
-            <button
-                onClick={() => handleToolSelect('pencil')}
-                style={{
-                    background: selectedTool === 'pencil' ? '#ddd' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                }}
-            >
-                <Pencil size={24} color={selectedTool === 'pencil' ? '#007bff' : '#000'} />
-            </button>
-            <button
-                onClick={() => handleToolSelect('rectangle')}
-                style={{
-                    background: selectedTool === 'rectangle' ? '#ddd' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                }}
-            >
-                <Square size={24} color={selectedTool === 'rectangle' ? '#007bff' : '#000'} />
-            </button>
-            
-            <button onClick={toggleEraser} style={{ border: 'none', cursor: 'pointer' }}>
-                <Eraser
-                    size={24}
-                    color={isEraser ? '#007bff' : '#000'}
-                    style={{
-                        background: isEraser ? '#ddd' : 'transparent',
-                        borderRadius: '50%',
-                    }}
-                />
-            </button>
+        <div className="toolbar">
+            <div className="toolbar-section tools">
+                <button
+                    className={`tool-button ${selectedTool === 'pencil' ? 'active' : ''}`}
+                    onClick={() => handleToolSelect('pencil')}
+                >
+                    <Pencil size={22} />
+                </button>
+                <button
+                    className={`tool-button ${selectedTool === 'rectangle' ? 'active' : ''}`}
+                    onClick={() => handleToolSelect('rectangle')}
+                >
+                    <Square size={22} />
+                </button>
+                <button
+                    className={`tool-button ${isEraser ? 'active' : ''}`}
+                    onClick={() => handleToolSelect('eraser')}
+                >
+                    <Eraser size={22} />
+                </button>
+            </div>
 
-            {/* Default Colors */}
-            {defaultColors.map((color) => (
-                <div
-                    key={color}
-                    onClick={() => handleColorClick(color)}
-                    style={{
-                        width: '20px',
-                        height: '20px',
-                        backgroundColor: color,
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        border: selectedTool === 'pencil' && color === 'selected' ? '2px solid #007bff' : 'none',
-                    }}
-                ></div>
-            ))}
+            <div className="toolbar-section colors">
+                {defaultColors.map((color) => (
+                    <div
+                        key={color}
+                        className="color-circle"
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleColorClick(color)}
+                    />
+                ))}
+                <input type="color" className="color-picker" onChange={handleCustomColorChange} />
+            </div>
 
-            {/* Custom Color Picker */}
-            <input type="color" onChange={handleCustomColorChange} style={{ cursor: 'pointer' }} />
-
-            {/* Line Width Slider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <label htmlFor="lineWidth">Line Width:</label>
-                <input
-                    id="lineWidth"
-                    type="range"
-                    min="1"
-                    max="50"
-                    defaultValue="2"
-                    onChange={handleLineWidthChange}
-                    style={{ cursor: 'pointer' }}
-                />
+            <div className="toolbar-section line-width">
+                <button className="line-width-toggle" onClick={toggleLineWidthMenu}>
+                    <SlidersHorizontal size={22} />
+                </button>
+                {showLineWidthMenu && (
+                    <div className="line-width-menu">
+                        <input
+                            type="range"
+                            min="1"
+                            max="50"
+                            defaultValue="2"
+                            onChange={handleLineWidthChange}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );
