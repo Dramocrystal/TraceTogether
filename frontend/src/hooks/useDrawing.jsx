@@ -47,17 +47,17 @@ export const useDrawing = () => {
     });
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      }
-    };
+  // useEffect(() => {
+  //   const handleKeyDown = (e) => {
+  //     if (e.ctrlKey && e.key === 'z') {
+  //       e.preventDefault();
+  //       handleUndo();
+  //     }
+  //   };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   return {
     isDrawing,
@@ -77,5 +77,6 @@ export const useDrawing = () => {
     stopDrawing,
     handleToolChange,
     handleUndo,
+    setDrawingHistory
   };
 };
