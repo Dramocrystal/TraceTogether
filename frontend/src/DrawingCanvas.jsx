@@ -29,6 +29,8 @@ const DrawingCanvas = () => {
   const location = useLocation();
   const { username, roomCode } = location.state;
 
+  const strokeIdRef = useRef(null);
+
   const {
     isDrawing,
     lastPosition,
@@ -45,6 +47,7 @@ const DrawingCanvas = () => {
     setIsErasing,
     startDrawing,
     stopDrawing,
+    setDrawingHistory
   } = useDrawing();
 
   const { cursorPositions, setCursorPositions } = useCursor({
@@ -53,7 +56,7 @@ const DrawingCanvas = () => {
     zoom
   });
 
-  const { handleMouseMove: handleDrawingMouseMove, handleMouseUp } = useDrawingWebSocket({
+  const { handleMouseMove: handleDrawingMouseMove, handleMouseUp, undoStroke } = useDrawingWebSocket({
     canvasRef,
     username,
     roomCode,
@@ -67,8 +70,21 @@ const DrawingCanvas = () => {
     setLastPosition,
     setCursorPositions,
     drawingHistory,
-    addToHistory
+    addToHistory,
+    setDrawingHistory,
+    strokeIdRef
   });
+
+  useEffect(() => {
+  const onKey = e => {
+    if (e.ctrlKey && e.key === 'z') {
+      e.preventDefault();
+      undoStroke();            // --- NEW ---
+    }
+  };
+  window.addEventListener('keydown', onKey);
+  return () => window.removeEventListener('keydown', onKey);
+}, [undoStroke]);
 
   useEffect(() => {
     const updateViewportSize = () => {
@@ -204,7 +220,8 @@ const DrawingCanvas = () => {
           offsetY
         }
       };
-      
+      strokeIdRef.current = (crypto.randomUUID && crypto.randomUUID()) ||
+  (Date.now().toString(36) + Math.random().toString(36).slice(2));
       startDrawing(modifiedEvent);
     }
   };

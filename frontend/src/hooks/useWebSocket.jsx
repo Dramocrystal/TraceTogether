@@ -16,7 +16,9 @@ export const useDrawingWebSocket = ({
   setLastPosition,
   setCursorPositions,
   drawingHistory,
-  addToHistory
+  addToHistory,
+  setDrawingHistory,
+  strokeIdRef
 }) => {
   const { sendMessage, addMessageListener } = useWebSocket();
   const messageHandlerRef = useRef(null);
@@ -60,6 +62,20 @@ export const useDrawingWebSocket = ({
           }
           addToHistory(message);
           break;
+        
+          case 'undo': {
+            setDrawingHistory(prev =>
+              prev.filter(ev => ev.strokeId !== message.strokeId)
+            );
+            const ctx = canvasRef.current.getContext('2d');
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            renderCanvasHistory(
+              drawingHistory.filter(ev => ev.strokeId !== message.strokeId),
+              canvasRef
+            );
+            break;
+          }
+
 
         case 'notification':
           if (notificationRef.current) {
@@ -134,6 +150,8 @@ export const useDrawingWebSocket = ({
           color: isErasing ? null : color,
           lineWidth,
           isErasing,
+          strokeId: strokeIdRef.current,
+          owner: username
         };
 
         addToHistory(drawingEvent);
@@ -156,6 +174,8 @@ export const useDrawingWebSocket = ({
         end: { x: offsetX, y: offsetY },
         color,
         lineWidth,
+        strokeId: strokeIdRef.current,
+        owner: username,
       };
       
       addToHistory(rectangleEvent);
@@ -163,5 +183,27 @@ export const useDrawingWebSocket = ({
     }
   };
 
-  return { handleMouseMove, handleMouseUp };
+  const undoStroke = () => {
+  if (!drawingHistory.length) return;
+  const myLast = [...drawingHistory].reverse()
+                    .find(ev => ev.owner === username);
+  if (!myLast) return;
+
+  const { strokeId } = myLast;
+
+  // 1 · local erase
+  setDrawingHistory(prev => prev.filter(ev => ev.strokeId !== strokeId));
+  const ctx = canvasRef.current.getContext('2d');
+  ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  renderCanvasHistory(
+    drawingHistory.filter(ev => ev.strokeId !== strokeId),
+    canvasRef
+  );
+
+  // 2 · notify server
+  sendMessage({ type: 'undo', strokeId });
+};
+
+
+  return { handleMouseMove, handleMouseUp, undoStroke };
 };

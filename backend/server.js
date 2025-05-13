@@ -55,6 +55,18 @@ wss.on('connection', (ws) => {
             case 'drawing':
                 broadcastDrawing(ws, message);
                 break;
+            case 'undo':
+                const { strokeId } = message;
+
+                const h = roomHistories.get(ws.room) || [];
+                roomHistories.set(ws.room, h.filter(ev => ev.strokeId !== strokeId));
+
+                rooms[ws.room].forEach(c => {
+                    if (c.readyState === WebSocket.OPEN) {
+                    c.send(JSON.stringify({ type: 'undo', strokeId }));
+                    }
+                });
+                break;
             
             default:
                 ws.send(JSON.stringify({ 
@@ -106,7 +118,9 @@ function broadcastDrawing(ws, message) {
         end: message.end,
         color: message.color,
         lineWidth: message.lineWidth,
-        isErasing: message.isErasing
+        isErasing: message.isErasing,
+        strokeId : message.strokeId,
+        owner: ws.user
     };
 
     // Add to room history
